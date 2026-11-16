@@ -7,7 +7,8 @@
 <meta name="theme-color" content="#e2d4d6">
 <link rel="icon" type="image/png" href="icon-192.png">
 <style>
-/* Раскладка: фиксированный холст макета (1680×700 десктоп, 375 мобилка), масштабируется под окно; за холстом — размытый фон того же экрана. */
+/* Раскладка: холст макета (1680×700 десктоп, 375 мобилка) вписывается в окно; фоновое видео растягивается (без искажений) на всё окно,
+   шапка прижата к верху окна, куки — к низу. Пока всё грузится — размытая подложка и полоска загрузки. */
 /* ponytail: MTS Text Bold нет в папке — для 700 браузер утолщает Medium */
 @font-face{font-family:'MTS Text';src:url(fonts/MTSText-Regular.woff2) format('woff2');font-weight:400}
 @font-face{font-family:'MTS Text';src:url(fonts/MTSText-Medium.woff2) format('woff2');font-weight:500}
@@ -39,7 +40,14 @@ img{display:block;max-width:none;user-select:none;-webkit-user-drag:none}
 #app.m[data-screen="start"] .backdrop{background-image:url(assets/m-start-bg.jpg)}
 #app.m[data-screen="gen"] .backdrop{background-image:url(assets/m-gen-bg.jpg)}
 
-.stage{position:absolute;left:0;top:0;transform-origin:0 0;overflow:hidden;overflow:clip;display:none;background:var(--mist)}
+.stage{position:absolute;left:0;top:0;transform-origin:0 0;display:none;transition:opacity .6s ease}
+#app.loading .stage{opacity:0}
+#app.loading .stage .in{animation-play-state:paused}
+.loader{position:fixed;left:50%;top:50%;width:min(220px,50vw);height:4px;border-radius:4px;background:rgba(28,22,56,.12);overflow:hidden;z-index:60;transform:translate(-50%,-50%);transition:opacity .4s}
+.loader i{display:block;height:100%;width:0;background:var(--mts);transition:width .3s}
+#app:not(.loading) .loader{opacity:0;pointer-events:none}
+/* края кадра с Соней и подложек растворяются — видны, когда экран шире холста */
+.edge{-webkit-mask-image:linear-gradient(90deg,transparent,#000 10%,#000 93%,transparent);mask-image:linear-gradient(90deg,transparent,#000 10%,#000 93%,transparent)}
 .stage[data-l="d"]{width:1680px;height:700px}
 .stage[data-l="m"]{width:375px}
 #app.d[data-screen="start"] .stage[data-l="d"][data-s="start"],
@@ -68,7 +76,7 @@ img{display:block;max-width:none;user-select:none;-webkit-user-drag:none}
 .haze.b{background:linear-gradient(90deg,var(--violet),var(--blue));animation-duration:24s;animation-delay:-8s}
 .haze.c{background:linear-gradient(90deg,var(--red),var(--pink));animation-duration:21s;animation-delay:-4s}
 @keyframes drift{0%{transform:translate3d(-6%,4%,0) scale(1)}50%{transform:translate3d(5%,-6%,0) scale(1.1)}100%{transform:translate3d(10%,5%,0) scale(.95)}}
-.grain{inset:-12px;pointer-events:none;opacity:.16;mix-blend-mode:soft-light;z-index:50;
+.grain{position:fixed;inset:-12px;pointer-events:none;opacity:.16;mix-blend-mode:soft-light;z-index:50;
   background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   animation:grain .9s steps(1) infinite}
 @keyframes grain{0%{transform:translate(0,0);opacity:.14}25%{transform:translate(-6px,4px);opacity:.18}50%{transform:translate(5px,-5px);opacity:.15}75%{transform:translate(-3px,-6px);opacity:.19}}
@@ -125,14 +133,15 @@ img{display:block;max-width:none;user-select:none;-webkit-user-drag:none}
 .btn.dark:active::before{opacity:1}
 
 /* куки */
-.cookie{display:flex;align-items:center;gap:11px;padding:0 15px 0 23px;border-radius:27px;background:rgba(255,255,255,.92);box-shadow:0 14.4px 36px rgba(64,31,128,.14);font:400 13.5px/18.9px var(--text);z-index:45;transition:opacity .25s ease,transform .25s ease}
+.cookie{display:flex;align-items:center;gap:11px;padding:0 15px 0 23px;border-radius:27px;background:rgba(255,255,255,.92);box-shadow:0 14.4px 36px rgba(64,31,128,.14);font:400 13.5px/18.9px var(--text);z-index:45;opacity:0;transform:translateY(16px);pointer-events:none;transition:opacity .5s ease,transform .5s cubic-bezier(.22,.8,.28,1)}
+#app.cookie-on .cookie{opacity:1;transform:none;pointer-events:auto} /* куки выезжает последним, после появления всех элементов */
 .cookie p{flex:1}
 .cookie b{font-weight:700}
 .cookie .ok{flex:none;width:52px;height:52px;border-radius:50%;background:var(--ink);color:var(--white);font:400 11.5px/1 var(--display);position:relative;overflow:hidden}
 .cookie .ok::before{content:"";position:absolute;inset:0;background:var(--mts);opacity:0;transition:opacity .2s}
 .cookie .ok span{position:relative}
 .cookie .ok:hover::before{opacity:1}
-#app.cookie-off .cookie{opacity:0;transform:translateY(8px);pointer-events:none}
+#app.cookie-on.cookie-off .cookie{opacity:0;transform:translateY(8px);pointer-events:none;transition-duration:.25s}
 
 /* текст с градиентом МТС */
 .grad{background:var(--noise),linear-gradient(90deg,var(--red),var(--pink) 24%,var(--violet) 72%,var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -207,12 +216,13 @@ img{display:block;max-width:none;user-select:none;-webkit-user-drag:none}
   <div class="nojs"><div><h1>В полёт и&nbsp;с&nbsp;песней</h1><p>Эта страница работает только в&nbsp;браузере. Встроенный просмотр файлов её не&nbsp;запускает: откройте файл в&nbsp;Safari или Chrome (на&nbsp;компьютере&nbsp;— двойным щелчком) или по&nbsp;ссылке.</p></div></div>
 </noscript>
 
-<div id="app" class="d" data-screen="start">
+<div id="app" class="d loading" data-screen="start">
   <div class="backdrop"></div>
+  <div class="loader"><i></i></div>
 
   <!-- ===== Десктоп · старт ===== -->
-  <section class="stage" data-l="d" data-s="start">
-    <video class="vbg" src="media/d-start.mp4" autoplay muted loop playsinline style="left:-5.9px;top:.3px;width:1691.8px;height:754.7px"></video>
+  <section class="stage" data-l="d" data-s="start" data-focus="1180,300">
+    <video class="vbg" src="media/d-start.mp4" autoplay muted loop playsinline preload="auto" style="left:-5.9px;top:.3px;width:1691.8px;height:754.7px"></video>
     <div class="haze a" style="left:560px;top:500px;width:760px;height:340px"></div>
     <div class="haze b" style="left:-180px;top:-200px;width:640px;height:380px"></div>
     <div class="flare" data-fl style="left:174.5px;top:143.5px;width:27px;height:27px"></div>
@@ -230,12 +240,11 @@ img{display:block;max-width:none;user-select:none;-webkit-user-drag:none}
     <div class="logo" data-act="home" style="left:235px;top:41px;width:315px"><img src="assets/logo.png" alt="Авиасейлс × МТС Музыка"></div>
     <button class="rules" data-act="rules" style="left:1445px;top:32px;width:116px;height:51px">Правила</button>
     <div class="cookie" style="left:1146px;top:601px;width:414px;height:77px"><p>Мы используем куки — про них можно почитать <b>в правилах</b></p><button class="ok" data-act="ok"><span>OK</span></button></div>
-    <div class="grain"></div>
   </section>
 
   <!-- ===== Десктоп · билет ===== -->
-  <section class="stage" data-l="d" data-s="gen">
-    <video class="vbg" src="media/d-gen.mp4" autoplay muted loop playsinline style="left:-55.5px;top:0;width:1792.5px;height:746.6px"></video>
+  <section class="stage" data-l="d" data-s="gen" data-focus="840,350">
+    <video class="vbg" src="media/d-gen.mp4" autoplay muted loop playsinline preload="auto" style="left:-55.5px;top:0;width:1792.5px;height:746.6px"></video>
     <div class="haze c" style="left:-300px;top:330px;width:900px;height:500px"></div>
     <div class="haze a" style="left:520px;top:470px;width:860px;height:400px"></div>
     <div class="haze b" style="left:1120px;top:20px;width:760px;height:440px"></div>
@@ -264,18 +273,17 @@ img{display:block;max-width:none;user-select:none;-webkit-user-drag:none}
     <div class="logo" data-act="home" style="left:235px;top:41px;width:315px"><img src="assets/logo.png" alt="Авиасейлс × МТС Музыка"></div>
     <button class="rules" data-act="rules" style="left:1445px;top:32px;width:116px;height:51px">Правила</button>
     <div class="cookie" style="left:1146px;top:601px;width:414px;height:77px"><p>Мы используем куки — про них можно почитать <b>в правилах</b></p><button class="ok" data-act="ok"><span>OK</span></button></div>
-    <div class="grain"></div>
   </section>
 
   <!-- ===== Мобилка · старт ===== -->
-  <section class="stage" data-l="m" data-s="start" style="height:759px;background:#cec1ce">
-    <video class="vbg" src="media/m-bg.mp4" autoplay muted loop playsinline style="left:0;top:29.2px;width:375px;height:759px"></video>
+  <section class="stage" data-l="m" data-s="start" data-fit="704" data-focus="187,400" style="height:759px">
+    <video class="vbg" src="media/m-bg.mp4" autoplay muted loop playsinline preload="auto" style="left:0;top:29.2px;width:375px;height:759px"></video>
     <!-- Соня: кадр из десктопного видео старта, кадрирование по imageTransform слоя в Figma -->
-    <div style="left:-44px;top:129px;width:444px;height:345px;overflow:hidden"><video class="vbg" src="media/d-start.mp4" autoplay muted loop playsinline style="position:absolute;left:-343px;top:0;width:836.1px;height:373px"></video></div>
+    <div class="edge" style="left:-44px;top:129px;width:444px;height:345px;overflow:hidden"><video class="vbg" src="media/d-start.mp4" autoplay muted loop playsinline preload="auto" style="position:absolute;left:-343px;top:0;width:836.1px;height:373px"></video></div>
     <div class="haze a" style="left:160px;top:-120px;width:340px;height:240px;filter:blur(40px)"></div>
     <div class="flare" data-fl style="left:245px;top:65px;width:18px;height:18px"></div>
-    <img src="assets/m-fade-top.png" alt="" style="left:-58px;top:-67px;width:492px;height:253px">
-    <img src="assets/m-fade-mid.png" alt="" style="left:-58px;top:433px;width:492px;height:125px">
+    <img class="edge" src="assets/m-fade-top.png" alt="" style="left:-58px;top:-67px;width:492px;height:253px">
+    <img class="edge" src="assets/m-fade-mid.png" alt="" style="left:-58px;top:433px;width:492px;height:125px">
     <div class="flare" data-fl style="left:58px;top:110px;width:22px;height:22px;--dl:-1s"></div>
     <div class="flare" data-fl style="left:36.4px;top:394.4px;width:17px;height:17px;--dl:-1.8s"></div>
     <h1 class="h1 in" style="left:0;top:89px;width:375px;font-size:40px;line-height:42px;--d:.05s">В полёт<br><span class="grad">и с песней</span></h1>
@@ -288,13 +296,12 @@ img{display:block;max-width:none;user-select:none;-webkit-user-drag:none}
     <button class="btn in" data-act="get" style="left:24px;top:536px;width:327px;height:64px;--d:.25s">Получить</button>
     <div class="logo" data-act="home" style="left:16px;top:30px;width:197px"><img src="assets/logo.png" alt="Авиасейлс × МТС Музыка"></div>
     <button class="rules" data-act="rules" style="left:261px;top:20px;width:98px;height:43px;font-size:14px">Правила</button>
-    <div class="cookie" style="left:16px;top:670px;width:343px;height:77px"><p>Мы используем куки — про них можно почитать <b>в правилах</b></p><button class="ok" data-act="ok"><span>OK</span></button></div>
-    <div class="grain"></div>
+    <div class="cookie" style="left:16px;top:614px;width:343px;height:77px"><p>Мы используем куки — про них можно почитать <b>в правилах</b></p><button class="ok" data-act="ok"><span>OK</span></button></div>
   </section>
 
   <!-- ===== Мобилка · билет ===== -->
-  <section class="stage" data-l="m" data-s="gen" style="height:895px">
-    <video class="vbg" src="media/m-bg.mp4" autoplay muted loop playsinline style="left:-41.5px;top:0;width:459.7px;height:930.4px"></video>
+  <section class="stage" data-l="m" data-s="gen" data-fit="810" data-focus="187,465" style="height:895px">
+    <video class="vbg" src="media/m-bg.mp4" autoplay muted loop playsinline preload="auto" style="left:-41.5px;top:0;width:459.7px;height:930.4px"></video>
     <div class="haze c" style="left:-81px;top:413px;width:450px;height:252px;filter:blur(40px)"></div>
     <div class="haze b" style="left:254px;top:56px;width:360px;height:207px;filter:blur(40px)"></div>
     <div class="flare" data-fl style="left:7.1px;top:457.1px;width:16px;height:16px"></div>
@@ -318,10 +325,10 @@ img{display:block;max-width:none;user-select:none;-webkit-user-drag:none}
     <a class="btn dark in" data-act="more" href="https://music.mts.ru/" target="_blank" rel="noopener" style="left:14px;top:647px;width:347.7px;height:59px;--d:.5s"><span class="ico" data-ico="note"></span><span>Больше музыки</span><span class="arr" data-ico="arrow"></span></a>
     <div class="logo" data-act="home" style="left:16px;top:30px;width:197px"><img src="assets/logo.png" alt="Авиасейлс × МТС Музыка"></div>
     <button class="rules" data-act="rules" style="left:261px;top:20px;width:98px;height:43px;font-size:14px">Правила</button>
-    <div class="cookie" style="left:16px;top:805px;width:343px;height:77px"><p>Мы используем куки — про них можно почитать <b>в правилах</b></p><button class="ok" data-act="ok"><span>OK</span></button></div>
-    <div class="grain"></div>
+    <div class="cookie" style="left:16px;top:720px;width:343px;height:77px"><p>Мы используем куки — про них можно почитать <b>в правилах</b></p><button class="ok" data-act="ok"><span>OK</span></button></div>
   </section>
 
+  <div class="grain"></div>
   <div class="modal" id="rules"><div class="box"><h2>Правила акции</h2><p>Это прототип тестового задания: он показывает анимацию, звук и переходы. Настоящих правил розыгрыша здесь нет.</p><button class="btn" data-act="close" id="rules-close">Понятно</button></div></div>
 </div>
 
@@ -361,24 +368,48 @@ $$('[data-eq]').forEach(e=>{
 });
 
 /* ---------- масштаб ---------- */
+const curStage=()=>document.querySelector(`.stage[data-l="${app.classList.contains('m')?'m':'d'}"][data-s="${app.dataset.screen}"]`);
+/* исходное кадрирование фонового видео (как в Figma) — от него видео только увеличивается */
+$$('.stage>video.vbg').forEach(v=>{v.dataset.rect=['left','top','width','height'].map(k=>parseFloat(v.style[k])).join(',');});
 function fit(){
   const vw=window.innerWidth, vh=window.innerHeight;
   const mobile=vw<=700||vw/vh<.8;
   app.classList.toggle('m',mobile);app.classList.toggle('d',!mobile);
-  const st=document.querySelector(`.stage[data-l="${mobile?'m':'d'}"][data-s="${app.dataset.screen}"]`);
-  let s,W,H;
-  if(mobile){W=375;H=parseFloat(st.style.height);s=Math.min(vw,500)/W;}
-  else{W=1680;H=700;s=Math.min(vw/W,vh/H);}
-  const x=(vw-W*s)/2, y=Math.max(0,(vh-H*s)/2);
+  const st=curStage();
+  let s,W,H,Hf;
+  if(mobile){
+    /* мобилка: вписываем в один экран всё содержимое вместе с куки (data-fit), куки стоит сразу под нижней кнопкой;
+       ponytail: на совсем низких экранах (меньше 72% ширины) не мельчим, а даём прокрутку */
+    W=375;H=parseFloat(st.style.height);Hf=+st.dataset.fit;
+    const sw=Math.min(vw,500)/W;s=Math.max(Math.min(sw,vh/Hf),sw*.72);
+  }else{W=1680;H=Hf=700;s=Math.min(vw/W,vh/H);}
+  const fits=Hf*s<=vh+1;
+  const x=(vw-W*s)/2, y=fits?(vh-Hf*s)/2:0;
   $$('.stage').forEach(e=>{e.style.transform='';});
   playVisible();
   st.style.transform=`translate(${x}px,${y}px) scale(${s})`;
-  app.style.height=Math.max(vh,Math.ceil(H*s))+'px';
+  coverVideo(st,vw,vh,x,y,s,fits?0:H);
+  /* шапка — к верху окна; на десктопе куки — к низу окна (с теми же отступами, что в макете), на мобилке — под кнопкой, чтобы не закрывать её */
+  st.querySelectorAll('.logo,.rules').forEach(e=>{e.style.translate=`0 ${-y/s}px`;});
+  st.querySelectorAll('.cookie').forEach(e=>{
+    const b=parseFloat(e.style.top)+parseFloat(e.style.height);
+    e.style.translate=`0 ${fits&&!mobile?((vh-(H-b)*s)-(y+b*s))/s:0}px`;
+  });
+  app.style.height=(fits?vh:Math.ceil(Math.max(vh,y+H*s)))+'px';
   fitText();
+}
+/* фоновое видео закрывает всё окно: увеличиваем его от кадра макета вокруг точки интереса (data-focus), пока не закроет окно */
+function coverVideo(st,vw,vh,x,y,s,minH){
+  const v=st.querySelector(':scope>video.vbg');if(!v)return;
+  const [l,t,w,h]=v.dataset.rect.split(',').map(Number);
+  const [fx,fy]=st.dataset.focus.split(',').map(Number);
+  const L=-x/s,T=-y/s,R=(vw-x)/s,B=Math.max((vh-y)/s,minH);
+  const k=Math.max(1,(fx-L)/(fx-l),(R-fx)/(l+w-fx),(fy-T)/(fy-t),(B-fy)/(t+h-fy));
+  v.style.left=(fx-(fx-l)*k)+'px';v.style.top=(fy-(fy-t)*k)+'px';v.style.width=w*k+'px';v.style.height=h*k+'px';
 }
 /* видео играет только на видимом экране; повторный запуск — когда видео готово и на первом касании (автозапуск иногда срывается) */
 function playVisible(){
-  const st=document.querySelector(`.stage[data-l="${app.classList.contains('m')?'m':'d'}"][data-s="${app.dataset.screen}"]`);
+  const st=curStage();
   $$('video').forEach(v=>{if(v.closest('.stage')===st){if(v.paused)v.play().catch(e=>console.debug('video',e.name));}else if(!v.paused)v.pause();});
 }
 $$('video').forEach(v=>v.addEventListener('canplay',playVisible));
@@ -472,5 +503,22 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')document.getElementB
 if(location.hash==='#gen')app.dataset.screen='gen'; /* прямая ссылка на билет: файл.html#gen */
 paintTicket();fit();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fit);
+
+/* ---------- загрузка под блюром ----------
+   ждём шрифты, все картинки раскладки и первый кадр видео текущего экрана; потом показываем всё разом,
+   элементы появляются по очереди, куки — последним. ponytail: через 8 с показываем как есть, чтобы не висеть на медленной сети */
+(function reveal(){
+  const lay=app.classList.contains('m')?'m':'d';
+  const items=[];
+  if(document.fonts&&document.fonts.ready)items.push(document.fonts.ready);
+  $$(`.stage[data-l="${lay}"] img`).forEach(i=>items.push(i.complete&&i.naturalWidth?Promise.resolve():new Promise(r=>{i.addEventListener('load',r,{once:true});i.addEventListener('error',r,{once:true});})));
+  curStage().querySelectorAll('video').forEach(v=>items.push(v.readyState>=2?Promise.resolve():new Promise(r=>{v.addEventListener('loadeddata',r,{once:true});v.addEventListener('error',r,{once:true});})));
+  const bar=document.querySelector('.loader i');let done=0;
+  items.forEach(p=>p.then(()=>{bar.style.width=(++done/items.length*100)+'%';}));
+  let shown=false;
+  const show=()=>{if(shown)return;shown=true;fit();app.classList.remove('loading');setTimeout(()=>app.classList.add('cookie-on'),1600);track.preload='auto';};
+  Promise.all(items).then(()=>setTimeout(show,250));
+  setTimeout(show,8000);
+})();
 })();
 </script>
